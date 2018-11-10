@@ -22,31 +22,48 @@ public class ProdutoServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         ProdutoDao dao = new ProdutoDao();
-        
-        long produtoId = Formatter.stringParaLong(req.getParameter("produto"));
-        //Verifica se o ID do produto foi informado na URL
-        if(produtoId > 0){
-            Produto produtoEncontrado = dao.buscaPorId(produtoId);
-            if(produtoEncontrado != null){
-                //Se o produto existe, então devolve o produto para a JSP
-                req.setAttribute("produto", produtoEncontrado);
-            }else{
-                //Se não, exibe uma mensagem de erro
-                req.setAttribute("mensagem-erro", "Produto não encontrado.");
-            }
-            
-        }
-        
-        /**
-         * 1. Fazer a consulta dos produto a serem exibidos. 2. Montar uma lista
-         * com os produtos que serão apresentados na pagina JSP. 3. Encaminhar a
-         * requisição para a página JSP apresentar o "response".
-         */
 
+        long produtoId = Formatter.stringParaLong(req.getParameter("produto"));
+        long excluirProdutoId
+                = Formatter.stringParaLong(req.getParameter("excluirProduto"));
+
+        if (excluirProdutoId > 0) {
+            // excluir o produto do banco de dados.
+            dao.remover(excluirProdutoId);
+            resp.sendRedirect("/gerenciador/produtos");
+        } else {
+            // Verifica se o ID do produto foi informado na URL
+            if (produtoId > 0) {
+                Produto produtoEncontrado = dao.buscaPorId(produtoId);
+                if (produtoEncontrado != null) {
+                    // Se o produto existe, então devolve o produto para a JSP
+                    req.setAttribute("produto", produtoEncontrado);
+                } else {
+                    // Se não, exibe uma mensagem de erro
+                    req.setAttribute("mensagem-erro", "Produto não encontrado.");
+                }
+            }
+            listarProdutos(req, resp);
+        }
+    }
+
+    private void listarProdutos(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+        /**
+         * 1. Fazer a consulta dos produtos a serem exibidos <br />
+         * 2. Montar uma lista com os produtos que serão apresentados na página
+         * JSP. <br />
+         * 3. Encaminhar a requisição para a página JSP apresentar o "response".
+         */
+        ProdutoDao dao = new ProdutoDao();
+        
+        String buscarProduto = req.getParameter("buscar-produtos");
+        
         List<Produto> produtos = dao.buscarTodos(null);
         req.setAttribute("produtos", produtos);
 
-        RequestDispatcher dispatcher = req.getRequestDispatcher("/WEB-INF/paginas/produtos.jsp");
+        RequestDispatcher dispatcher
+                = req.getRequestDispatcher("/WEB-INF/paginas/produtos.jsp");
         dispatcher.forward(req, resp);
     }
 
@@ -65,21 +82,21 @@ public class ProdutoServlet extends HttpServlet {
         if (mensagemErro == null) {
             //Os dados do produto são válidos
             ProdutoDao dao = new ProdutoDao();
-            
-            if(produto.getId() > 0){
+
+            if (produto.getId() > 0) {
                 dao.atualizar(produto);
-            }else{
+            } else {
                 dao.inserir(produto);
             }
-            
+
             resp.sendRedirect("/gerenciador/produtos");
-            
+
         } else {
             //Os dados do produto são inválidos
             req.setAttribute("mensagem-erro", mensagemErro);
             req.setAttribute("produto", produto);
-            
-            doGet(req, resp);
+
+            listarProdutos(req, resp);
         }
     }
 
@@ -100,10 +117,10 @@ public class ProdutoServlet extends HttpServlet {
         calendar.set(calendar.SECOND, 0);
         calendar.set(calendar.MILLISECOND, 0);
         Date dataMinima = calendar.getTime();
-        
+
         calendar.add(Calendar.YEAR, 10);
         Date dataMaxima = calendar.getTime();
-        
+
         if (!Validations.validaData(req.getParameter("produto-validade"), dataMinima, dataMaxima)) {
             return "Informe a data de validade do produto.";
         }
